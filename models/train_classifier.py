@@ -17,6 +17,18 @@ nltk.download('wordnet')
 
 
 def load_data(database_filepath):
+    """Load data from a given database and split it into input and target
+
+        Parameters:
+        database_filepath (str):
+
+        Returns:
+        X (DataFrame): input data
+        Y (DataFrame): target data
+        category_names (list of str): category names for target data as strings
+
+    """
+
     engine = create_engine(f'sqlite:///{database_filepath}')
     conn = engine.connect()
     df = pd.read_sql_table('DisasterResponse', conn)
@@ -29,6 +41,15 @@ def load_data(database_filepath):
 
 
 def tokenize(text):
+    """Tokenize a text string. Transform words in lower case, lemmatize and remove blanks
+
+        Parameters:
+        text (str): text string to tokenize
+
+        Returns:
+        clean_tokens (list of str): text string splitted into words, lemmatized and lower case
+    """
+
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
 
@@ -41,6 +62,10 @@ def tokenize(text):
 
 
 def build_model():
+    """Creates a pipeline for a multi output classification problem.
+        Performs grid search over defined parameter space
+    """
+
     pipeline = Pipeline([
         ('features', FeatureUnion([
             ('text_pipeline', Pipeline([
@@ -54,11 +79,11 @@ def build_model():
 
     # specify parameters for grid search
     parameters = {
-       # 'clf__estimator__max_depth': [4, 16, 32]
-        #'clf__estimator__min_samples_split': [2, 100],
-        'clf__estimator__n_estimators': [10],
+        'clf__estimator__max_depth': [4, 16, 32],
+        'clf__estimator__min_samples_split': [2, 100],
+        'clf__estimator__n_estimators': [10, 100],
         'clf__estimator__criterion': ['gini', 'entropy'],
-        'clf__estimator__max_features': [5, 100, 'auto']
+        'clf__estimator__max_features': ['auto']
     }
 
     # create grid search object
@@ -68,6 +93,19 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    """Prints model performance results for test data
+        - F1
+        - Precision
+        - Recall
+
+        Parameters:
+        model (): model to evalutate
+        X_test (DataFrame): dataframe with inputs for test data
+        Y_test (DataFrame): dataframe with target for test data
+        category_names (list of str): names for targets
+
+    """
+
     Y_pred = pd.DataFrame(model.predict(X_test), columns=category_names)
     Y_pred = (Y_pred == 1)
     Y_test = (Y_test == 1)
@@ -86,6 +124,13 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 
 def save_model(model, model_filepath):
+    """Saves a model as a pickle file
+
+        Parameters:
+        model (): model to save
+        model_filepath (str): path to save model
+
+    """
     joblib.dump(model, model_filepath)
     pass
 
@@ -99,9 +144,6 @@ def main():
 
         print('Building model...')
         model = build_model()
-
-        print(X_train.shape)
-        print(Y_train.shape)
         
         print('Training model...')
         model.fit(X_train, Y_train)
